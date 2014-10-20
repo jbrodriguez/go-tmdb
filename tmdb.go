@@ -6,14 +6,29 @@ import (
 )
 
 type Tmdb struct {
-	ApiKey string
-	api    napping.Session
+	ApiKey        string
+	api           napping.Session
+	BaseUrl       string
+	SecureBaseUrl string
 }
 
 const (
-	searchmovie = "https://api.themoviedb.org/3/search/movie"
-	movie       = "https://api.themoviedb.org/3/movie/%d"
+	configuration = "https://api.themoviedb.org/3/configuration"
+	searchmovie   = "https://api.themoviedb.org/3/search/movie"
+	movie         = "https://api.themoviedb.org/3/movie/%d"
 )
+
+type ConfigurationResult struct {
+	Images struct {
+		Base_Url        string
+		Secure_Base_Url string
+		Poster_Sizes    []string
+		Backdrop_Sizes  []string
+		Profile_Sizes   []string
+		Logo_Sizes      []string
+	}
+	ChangeKeys []string
+}
 
 type SearchMovieResult struct {
 	Adult          bool    `json: adult`
@@ -33,6 +48,13 @@ type SearchMovieResponse struct {
 	Results       []SearchMovieResult `json: results`
 	Total_Pages   uint64              `json: total_pages`
 	Total_Results uint64              `json: total_results`
+}
+
+type Collection struct {
+	Id            uint64 `json: id`
+	Name          string `json: name`
+	Poster_Path   string `json: poster_path`
+	Backdrop_Path string `json: backdrop_path`
 }
 
 type Genre struct {
@@ -58,7 +80,7 @@ type Language struct {
 type GetMovieResponse struct {
 	Adult                 bool       `json: adult`
 	Backdrop_Path         string     `json: backdrop_path`
-	Belongs_To_Collection bool       `json: `
+	Belongs_To_Collection Collection `json: belongs_to_collection`
 	Budget                uint64     `json: budget`
 	Genres                []Genre    `json: genres`
 	Homepage              string     `json: homepage`
@@ -69,7 +91,7 @@ type GetMovieResponse struct {
 	Popularity            float64    `json: popularity`
 	Poster_Path           string     `json: poster_path`
 	Production_Companies  []Company  `json: production_companies`
-	Production_Countries  []Country  `json: country`
+	Production_Countries  []Country  `json: production_countries`
 	Release_Date          string     `json: release_date`
 	Revenue               uint64     `json: revenue`
 	Runtime               uint64     `json: runtime`
@@ -81,8 +103,24 @@ type GetMovieResponse struct {
 	Vote_Count            uint64     `json: vote_count`
 }
 
-func NewClient(apiKey string) *Tmdb {
-	return &Tmdb{apiKey, napping.Session{Log: true}}
+func NewClient(apiKey string, log bool) (tmdb *Tmdb, err error) {
+	session := napping.Session{Log: log}
+
+	res := ConfigurationResult{}
+	params := napping.Params{
+		"api_key": apiKey,
+	}
+
+	resp, err := session.Get(configuration, &params, &res, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get TMDB Configuration: %s", err)
+	}
+
+	if resp.Status() != 200 {
+		return nil, fmt.Errorf("Error getting TMDB configuration: [status %v] %v", resp.Status(), resp.RawText())
+	}
+
+	return &Tmdb{apiKey, session, res.Images.Base_Url, res.Images.Secure_Base_Url}, nil
 }
 
 func (self *Tmdb) SearchMovie(title string) (res *SearchMovieResponse, err error) {

@@ -1,0 +1,1 @@
+Based on [rharter/go-tmdb](https://github.com/rharter/go-tmdb), modified to better suit my needs.
