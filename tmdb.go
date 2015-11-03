@@ -109,7 +109,7 @@ func NewClient(apiKey string, log bool) (tmdb *Tmdb, err error) {
 	res := ConfigurationResult{}
 	params := napping.Params{
 		"api_key": apiKey,
-	}
+	}.AsUrlValues()
 
 	resp, err := session.Get(configuration, &params, &res, nil)
 	if err != nil {
@@ -127,7 +127,7 @@ func (self *Tmdb) SearchMovie(title string) (res *SearchMovieResponse, err error
 	params := napping.Params{
 		"api_key": self.ApiKey,
 		"query":   title,
-	}
+	}.AsUrlValues()
 
 	resp, err := self.api.Get(searchmovie, &params, &res, nil)
 	if err != nil {
@@ -144,7 +144,7 @@ func (self *Tmdb) SearchMovie(title string) (res *SearchMovieResponse, err error
 func (self *Tmdb) GetMovie(id uint64) (res *GetMovieResponse, err error) {
 	params := napping.Params{
 		"api_key": self.ApiKey,
-	}
+	}.AsUrlValues()
 
 	resp, err := self.api.Get(fmt.Sprintf(movie, id), &params, &res, nil)
 	if err != nil {
